@@ -1,0 +1,78 @@
+# Python equivalent of node_modules
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Python cache files (like node_modules but for Python)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging (like dist/ in Node.js)
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environment variables (like .env in Node.js)
+.env
+.venv
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# For your image scraper project specifically
+images/
+downloads/
+scraped_data/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
