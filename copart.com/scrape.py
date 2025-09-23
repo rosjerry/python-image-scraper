@@ -36,37 +36,35 @@ def run(pw: Playwright):
         page.keyboard.press("Enter")
 
     
-    # Select all table rows from tbody
     tr_elements = page.locator("tbody tr")
     
     urls = []
     for i in range(quantity):
         try:
             tr = tr_elements.nth(i)
-            # Get the second td element (index 1)
             second_td = tr.locator("td").nth(1)
-            # Find the first 'a' element within the second td
             a_element = second_td.locator("a").first
             href = a_element.get_attribute("href")
             if href:
-                # Remove leading slash if present to avoid double slashes
                 clean_href = href.lstrip('/')
                 urls.append(f"{base_url}{clean_href}")
         except Exception as e:
             print(f"Error extracting href from row {i}: {e}")
             continue
-    
+
+    # scrape all urls
     print(f"Extracted {len(urls)} URLs:")
     for url_test in urls:
         print(url_test)
-
     print("urls list ==> ", urls)
+    
+    # check if this url already exists in db
+    
+    
     
     input("Press Enter to close browser...")
 
 
-# scrape all urls
-# check if this url already exists in db
 # scrape all gathered urls after one ecahother
 # download all images into respective folders outside the project
 # make additional txt file for each folder, including url, title and etc.
