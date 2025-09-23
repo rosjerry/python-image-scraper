@@ -15,10 +15,13 @@ def run(pw: Playwright):
     # go to url
     page.goto(url=url, timeout=0)
 
-    # Find the span with class 'blue-heading' and get its text content
-    counted_search_result = page.locator("tbody.p-datatable-tbody")
-    tr_elements = counted_search_result.locator("tr")
-    quantity = tr_elements.count()
+    span_element = page.locator('.search_result_title_block span[roundoffcounts].blue-heading')
+    span_element.wait_for()
+    
+    quantity_text = span_element.text_content()
+    quantity = int(quantity_text) if quantity_text else 0
+    
+    print(f"Number of search results: {quantity}")
 
     if quantity <= 20:
         pass
@@ -32,18 +35,33 @@ def run(pw: Playwright):
             page.keyboard.press("ArrowDown")
         page.keyboard.press("Enter")
 
-    print(f"Number of <tr> elements: {quantity}")
+    
+    # Select all table rows from tbody
+    tr_elements = page.locator("tbody tr")
     
     urls = []
     for i in range(quantity):
-        tr = tr_elements.nth(i)
-        second_td = tr.locator("td").nth(1)
-        a_element = second_td.locator("a").first
-        href = a_element.get_attribute("href")
-        if href:
-            urls.append(f"{base_url}/{href}")
-    print(urls)
+        try:
+            tr = tr_elements.nth(i)
+            # Get the second td element (index 1)
+            second_td = tr.locator("td").nth(1)
+            # Find the first 'a' element within the second td
+            a_element = second_td.locator("a").first
+            href = a_element.get_attribute("href")
+            if href:
+                # Remove leading slash if present to avoid double slashes
+                clean_href = href.lstrip('/')
+                urls.append(f"{base_url}{clean_href}")
+        except Exception as e:
+            print(f"Error extracting href from row {i}: {e}")
+            continue
+    
+    print(f"Extracted {len(urls)} URLs:")
+    for url_test in urls:
+        print(url_test)
 
+    print("urls list ==> ", urls)
+    
     input("Press Enter to close browser...")
 
 
