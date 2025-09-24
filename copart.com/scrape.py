@@ -4,17 +4,199 @@ import os
 import re
 from pathlib import Path
 
-# url query of results from copart
-url = "lotSearchResults?free=false&searchCriteria=%7B%22query%22:%5B%22*%22%5D,%22filter%22:%7B%22PRID%22:%5B%22damage_type_code:DAMAGECODE_NW%22%5D,%22ODM%22:%5B%22odometer_reading_received:%5B0%20TO%209999999%5D%22%5D,%22YEAR%22:%5B%22lot_year:%5B2014%20TO%202017%5D%22%5D,%22MISC%22:%5B%22%23VehicleTypeCode:VEHTYPE_V%22,%22%23MakeCode:HOND%20OR%20%23MakeDesc:Honda%22,%22%23LotModel:%5C%22ACCORD%5C%22%22%5D%7D,%22searchName%22:%22%22,%22watchListOnly%22:false,%22freeFormSearch%22:false%7D%20&displayStr=AUTOMOBILE,NORMAL%20WEAR,%5B0%20TO%209999999%5D,%5B2014%20TO%202017%5D,Honda,Accord&from=%2FvehicleFinder&fromSource=widget&qId=b121218d-a368-4941-a95c-ab37b276580e-1758645680911"
+brand = "toyota"
+model = "rav4"
 base_url = "https://www.copart.com/"
+url = 'lotSearchResults?free=false&searchCriteria=%7B"query":%5B"*"%5D,"filter":%7B"PRID":%5B"damage_type_code:DAMAGECODE_NW"%5D,"ODM":%5B"odometer_reading_received:%5B0%20TO%209999999%5D"%5D,"YEAR":%5B"lot_year:%5B2013%20TO%202018%5D"%5D,"MISC":%5B"%23VehicleTypeCode:VEHTYPE_V","%23MakeCode:TOYT%20OR%20%23MakeDesc:Toyota","%23LotModel:%5C"RAV4%5C""%5D%7D,"searchName":"","watchListOnly":false,"freeFormSearch":false%7D%20&displayStr=AUTOMOBILE,NORMAL%20WEAR,%5B0%20TO%209999999%5D,%5B2013%20TO%202018%5D,Toyota,Rav4&from=%2FvehicleFinder&fromSource=widget&qId=b121218d-a368-4941-a95c-ab37b276580e-1758708563407'
+
+
+def update_database(url):
+    """Update the database with a new parsed URL"""
+    db_file = "db.json"
+    try:
+        # Load existing data
+        if os.path.exists(db_file):
+            with open(db_file, "r") as f:
+                db_data = json.load(f)
+        else:
+            db_data = {"already_parsed_urls": []}
+
+        # Add new URL if not already present
+        if url not in db_data["already_parsed_urls"]:
+            db_data["already_parsed_urls"].append(url)
+
+            # Save updated data
+            with open(db_file, "w") as f:
+                json.dump(db_data, f, indent=2)
+            print(f"Added URL to database: {url}")
+        else:
+            print(f"URL already in database: {url}")
+
+    except Exception as e:
+        print(f"Error updating database: {e}")
+
+
+def scrape_vehicle_information(page, url):
+    """Scrape vehicle information from the vehicle-information panel"""
+    try:
+        # Wait for the vehicle information panel to load
+        vehicle_info_panel = page.locator(
+            "vehicle-information.vehicle-information.cprt-panel"
+        )
+        page.mouse.down()
+        vehicle_info_panel.wait_for(timeout=10000)
+
+        # Initialize the text content with URL
+        vehicle_info_text = f"URL: {url}\n"
+        vehicle_info_text += "=" * 80 + "\n\n"
+
+        # Get all lot-details-information divs
+        info_divs = vehicle_info_panel.locator("div.lot-details-information")
+        info_count = info_divs.count()
+
+        print(f"Found {info_count} information fields")
+
+        for i in range(info_count):
+            try:
+                info_div = info_divs.nth(i)
+
+                # Get the label
+                label_element = info_div.locator("label.lot-details-information-label")
+                label_text = (
+                    label_element.text_content().strip()
+                    if label_element.is_visible()
+                    else ""
+                )
+
+                if not label_text:
+                    continue
+
+                # Get the value - handle different value structures
+                value_text = ""
+
+                # Try different value selectors based on the HTML structure
+                value_selectors = [
+                    "span.lot-details-information-value",
+                    "div.lot-details-information-value",
+                    "button.lot-details-link.lot-details-information-value",
+                    "div.lot-details-information-value div.ng-star-inserted",
+                    "div.lot-details-information-value span",
+                ]
+
+                for selector in value_selectors:
+                    value_element = info_div.locator(selector)
+                    if value_element.is_visible():
+                        value_text = value_element.text_content().strip()
+                        if value_text:
+                            break
+
+                # Special handling for complex structures
+                if not value_text:
+                    # For Title code - get all spans within the value div
+                    if "Title code" in label_text:
+                        title_spans = info_div.locator(
+                            "div.lot-details-information-value span"
+                        )
+                        title_parts = []
+                        for j in range(title_spans.count()):
+                            span_text = title_spans.nth(j).text_content().strip()
+                            if span_text and "Certificate Of Title" not in span_text:
+                                title_parts.append(span_text)
+                        value_text = " ".join(title_parts)
+
+                    # For Odometer - get the main value and unit
+                    elif "Odometer" in label_text:
+                        odometer_spans = info_div.locator(
+                            "span.lot-details-information-value span"
+                        )
+                        odometer_parts = []
+                        for j in range(odometer_spans.count()):
+                            span_text = odometer_spans.nth(j).text_content().strip()
+                            if (
+                                span_text
+                                and "Actual" not in span_text
+                                and "mi" not in span_text
+                            ):
+                                odometer_parts.append(span_text)
+                        if odometer_parts:
+                            value_text = f"{odometer_parts[0]} mi Actual"
+
+                    # For Engine type - get the span content
+                    elif "Engine type" in label_text:
+                        engine_span = info_div.locator(
+                            "div.lot-details-information-value span"
+                        )
+                        if engine_span.is_visible():
+                            value_text = engine_span.text_content().strip()
+
+                    # For Transmission - get the div content
+                    elif "Transmission" in label_text:
+                        trans_div = info_div.locator(
+                            "div.lot-details-information-value div.ng-star-inserted"
+                        )
+                        if trans_div.is_visible():
+                            value_text = trans_div.text_content().strip()
+
+                    # For Drivetrain - get the div content
+                    elif "Drivetrain" in label_text:
+                        drive_div = info_div.locator(
+                            "div.lot-details-information-value div.ng-star-inserted"
+                        )
+                        if drive_div.is_visible():
+                            value_text = drive_div.text_content().strip()
+
+                    # For Sale date - get button text
+                    elif "Sale date" in label_text:
+                        sale_button = info_div.locator("button.lot-details-link")
+                        if sale_button.is_visible():
+                            value_text = sale_button.text_content().strip()
+
+                    # For Highlights - get the highlight text
+                    elif "Highlights" in label_text:
+                        highlight_span = info_div.locator(
+                            "div.highlights-item span span"
+                        )
+                        if highlight_span.is_visible():
+                            value_text = highlight_span.text_content().strip()
+
+                    # For Notes - get the div content
+                    elif "Notes" in label_text:
+                        notes_div = info_div.locator(
+                            "div.lot-details-information-value div.ng-star-inserted"
+                        )
+                        if notes_div.is_visible():
+                            value_text = notes_div.text_content().strip()
+
+                # Clean up the value text (remove extra whitespace, newlines)
+                if value_text:
+                    value_text = " ".join(value_text.split())
+
+                # Format and add to the text
+                if label_text and value_text:
+                    vehicle_info_text += f"{label_text}: {value_text}\n"
+                elif label_text:
+                    vehicle_info_text += f"{label_text}: N/A\n"
+
+            except Exception as e:
+                print(f"Error processing information field {i}: {e}")
+                continue
+
+        # Add separator at the end
+        vehicle_info_text += "\n" + "=" * 80 + "\n"
+        vehicle_info_text += (
+            f"Scraped on: {page.evaluate('new Date().toISOString()')}\n"
+        )
+
+        return vehicle_info_text
+
+    except Exception as e:
+        print(f"Error scraping vehicle information: {e}")
+        return f"URL: {url}\nError: Could not scrape vehicle information - {e}"
 
 
 def run(pw: Playwright):
     chromium = pw.chromium
-    launch_chromium = chromium.launch(
-        headless=False,
-        slow_mo=2000
-    )
+    launch_chromium = chromium.launch(headless=False, slow_mo=2000)
     page = launch_chromium.new_page(
         accept_downloads=True,
         base_url=base_url,
@@ -130,7 +312,9 @@ def run(pw: Playwright):
         print(f"Lot number: {lot_number}")
 
         # Create download directory
-        download_path = Path.home() / "scraped-data" / "honda" / "accord" / f"{lot_number}"
+        download_path = (
+            Path.home() / "scraped-data" / f"{brand}" / f"{model}" / f"{lot_number}"
+        )
         download_path.mkdir(parents=True, exist_ok=True)
         print(f"Download directory: {download_path.absolute()}")
 
@@ -178,9 +362,13 @@ def run(pw: Playwright):
                         # Save the downloaded file
                         downloaded_file = download_path / f"{lot_number}_images.zip"
                         download.save_as(downloaded_file)
-                        print(f"Download successful! Saved to: {downloaded_file.absolute()}")
+                        print(
+                            f"Download successful! Saved to: {downloaded_file.absolute()}"
+                        )
                         print(f"File exists: {downloaded_file.exists()}")
-                        print(f"File size: {downloaded_file.stat().st_size if downloaded_file.exists() else 'N/A'} bytes")
+                        print(
+                            f"File size: {downloaded_file.stat().st_size if downloaded_file.exists() else 'N/A'} bytes"
+                        )
                         download_success = True
                         break
                     else:
@@ -218,8 +406,25 @@ def run(pw: Playwright):
 
         print(f"Successfully processed lot {lot_number}")
 
+        # Scrape vehicle information and save to text file
+        try:
+            print("Scraping vehicle information...")
+            vehicle_info = scrape_vehicle_information(page, current_url)
+
+            # Save vehicle information to text file
+            info_file = download_path / f"{lot_number}_vehicle_info.txt"
+            with open(info_file, "w", encoding="utf-8") as f:
+                f.write(vehicle_info)
+            print(f"Vehicle information saved to: {info_file.absolute()}")
+
+        except Exception as e:
+            print(f"Error scraping vehicle information: {e}")
+
+        # Update database with the processed URL
+        update_database(current_url)
+
     print(f"\nCompleted processing {len(urls)} URLs")
-    
+
     # Show summary of downloaded files
     download_base_path = Path.home() / "scraped-data" / "honda" / "accord"
     if download_base_path.exists():
