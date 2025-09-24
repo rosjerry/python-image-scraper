@@ -23,3 +23,6 @@ to install requirements and libraries
 
 run "python copart.com/scrape.py"
 is opens playwright chromium browser with headed mode and starts scraping
+
+after finishing scrape process hit enter in terminal to finish it.
+it will not scrape same url twice, scraped urls are saved in db.json
