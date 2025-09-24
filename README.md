@@ -1,28 +1,51 @@
-this is my first touch with python and second touch with scraping
+# Introduction
 
-gaol of this repo:
-gathering data for image classification ai
+This is my first experience with Python and my second experience with web scraping.
 
+## Goal of This Repository
 
-what does this repo do:
-takes copart search query url and parses up to 100 items on page
-(did not implemented pagination yet, not enough items on first page)
-it download images of car with zip archive
-also it includes basic details in txt format
+The goal of this repository is to gather data for image classification AI.
 
-what is useage of this repo:
-images and basic data will help to label car images with different definitions such as:
-color, side of car, model, brand, year, feul type and etc.
+## What Does This Repository Do?
 
-setup:
-I have linux, I'll add windows setup later
-go to project directory and run 'source venv/bin/activate' to activate virtual environment
-and then run
-pip install -r requirements.txt
-to install requirements and libraries
+- Takes a Copart search query URL and parses up to 100 items on the page.
+  - (Pagination is not implemented yet, as there are not enough items on the first page.)
+- Downloads images of cars as a ZIP archive.
+- Includes basic details in TXT format.
 
-run "python copart.com/scrape.py"
-is opens playwright chromium browser with headed mode and starts scraping
+## Usage
 
-after finishing scrape process hit enter in terminal to finish it.
-it will not scrape same url twice, scraped urls are saved in db.json
+The images and basic data will help label car images with different attributes such as:
+- Color
+- Side of the car
+- Model
+- Brand
+- Year
+- Fuel type
+- Etc.
+
+## Setup
+
+I am using Linux; I will add Windows setup instructions later.
+
+1. Go to the project directory and run `source venv/bin/activate` to activate the virtual environment.
+2. Then run:
+   ```
+   pip install -r requirements.txt
+   ```
+   to install the required libraries.
+
+## Running the Script
+
+Run:
+ to run latest ready scraper file run 
+ 
+ ```
+  python copart.com/scrape.py
+ ```
+
+it will open playwright chromium broweser in headed mode
+
+after finishing it press enter in cli to end scraping.
+
+rerun the command will not scrape same url again, scraped urls are saved in db.json
