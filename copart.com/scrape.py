@@ -13,6 +13,7 @@ def run(pw: Playwright):
     chromium = pw.chromium
     launch_chromium = chromium.launch(
         headless=False,
+        slow_mo=2000
     )
     page = launch_chromium.new_page(
         accept_downloads=True,
@@ -129,7 +130,7 @@ def run(pw: Playwright):
         print(f"Lot number: {lot_number}")
 
         # Create download directory
-        download_path = Path.home() / "scraped-data" / "honda" / "accord"
+        download_path = Path.home() / "scraped-data" / "honda" / "accord" / f"{lot_number}"
         download_path.mkdir(parents=True, exist_ok=True)
         print(f"Download directory: {download_path.absolute()}")
 
@@ -163,7 +164,8 @@ def run(pw: Playwright):
                     page.wait_for_timeout(1000)
 
                     second_download_button = page.locator(
-                        ".btn-reset.p-pb-5.text-dark-gray-3.p-decor-none"
+                        # ".btn-reset.p-pb-5.text-dark-gray-3.p-decor-none" #differs on viewport
+                        ".p-pb-5.text-dark-gray-3.p-decor-none"
                     )
 
                     if second_download_button.is_visible():
