@@ -67,12 +67,27 @@ htmlcov/
 .dmypy.json
 dmypy.json
 
-# For your image scraper project specifically
-images/
-downloads/
-scraped_data/
 *.jpg
 *.jpeg
 *.png
 *.gif
 *.webp
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Large data files
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+*.json.bak
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
